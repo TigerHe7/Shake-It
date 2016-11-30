@@ -11,7 +11,7 @@ static enum GamePages
   SelectDifficulty    = 2,
   PassDevice          = 3,
   ButtonsGame         = 4,
-  DialGame            = 5,
+  PotentiometerGame            = 5,
   ShakeGame           = 6,
   GameResult          = 7,
   DisplayHighscores   = 8,
@@ -23,7 +23,7 @@ static enum GamePages
 const uint32_t SwitchCount = 2;
 const uint32_t ButtonCount = 2;
 const uint32_t ShakeDirectionCount = 3;
-const uint32_t DialPositionCount = 10;
+const uint32_t PotentiometerPositionCount = 10;
 
 const uint32_t Switches[SwitchCount] = { PA_7, PA_6 };
 const uint32_t Buttons[ButtonCount] = { PD_2, PE_0 };
@@ -49,6 +49,7 @@ const unsigned int singleAddress =0;
 char * multiRecordHolders [recordCount];
 uint32_t multiRecords [recordCount];
 const unsigned int multiAddress =120;
+int newRecordIndex = 0;
 
 
 // difficulty of game
@@ -195,12 +196,12 @@ static void handlePageSelectDifficulty()
   if(gameInputState.buttons[0].beingDepressed)
   {
       changeState();
-    activeGame.playersRemainingCount = activeGame.playerCount;
+    game.playersRemainingCount = game.playerCount;
     for (int i = 0; i < MaxPlayers; i++) {
-      if (i < activeGame.playerCount) {
-        activeGame.playersRemaining[i] = true;
+      if (i < game.playerCount) {
+        game.playersRemaining[i] = true;
       } else {
-        activeGame.playersRemaining[i] = false;
+        game.playersRemaining[i] = false;
       }
     }
   }
@@ -267,7 +268,7 @@ static void handleButtonsGame() {
 }
 
 // *** to be implemented
-static void handleDialGame() {
+static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("fit between: ");
 }
@@ -304,9 +305,9 @@ static void setobjectives() {
       for (int i = 0; i < MaxActions; i++)
         game.objectives[i] = rand() % ButtonCount + 1;
       break;
-    case DialGame:
+    case PotentiometerGame:
       for (int i = 0; i < MaxActions; i++)
-        game.objectives[i] = rand() % DialPositionCount;
+        game.objectives[i] = rand() % PotentiometerPositionCount;
       break;
     case ShakeGame:
       for (int i = 0; i < MaxActions; i++)
@@ -367,7 +368,7 @@ static void handleNewRecord(){
   OrbitOledMoveTo(0,12);
   OrbitOledDrawString("Enter your name:");
   
-  name[spot] = (char)(65+(analogRead(Dial) /160 % 26));
+  name[spot] = (char)(65+(analogRead(Potentiometer) /160 % 26));
   OrbitOledMoveTo(0,24);
   OrbitOledDrawString(name);
   
@@ -487,8 +488,8 @@ void changeState()
     handleButtonsGame();
     break;
 
-  case DialGame:
-    handleDialGame();
+  case PotentiometerGame:
+    handlePotentiometerGame();
     break;
 
   case ShakeGame:
@@ -504,7 +505,7 @@ void changeState()
     break;
   }
   OrbitOledUpdate();
-  gameInputState.Dial = analogRead(Dial);
+  gameInputState.dial = analogRead(Potentiometer);
 }
 
 // determine which state game is in
@@ -534,8 +535,8 @@ void GameUITick()
     handleButtonsGame();
     break;
 
-  case DialGame:
-    handleDialGame();
+  case PotentiometerGame:
+    handlePotentiometerGame();
     break;
 
   case ShakeGame:
