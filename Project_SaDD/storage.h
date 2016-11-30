@@ -17,7 +17,7 @@ extern "C"
 void EEPROM_init();
 bool writeName(char *c, unsigned int address, int len);
 void getName(char *c, unsigned int address, int len);
-bool writeRecord(uint32_t *t, unsigned int address, int len);
+bool writeRecord(const uint32_t *t, unsigned int address, int len);
 uint32_t getRecord(unsigned int address, int len);
 char * intToChar(uint32_t t);
 
