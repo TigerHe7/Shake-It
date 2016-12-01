@@ -40,6 +40,7 @@ const uint32_t TimeLimit = 10000;
 // prevents single shake as being registered as more than one
 const uint32_t CooldownLength = 500;
 
+char pot [] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
 // Record Handling
 uint32_t currScore = 0;
@@ -122,21 +123,21 @@ void GameUIInit()
     recordHolders[i] = (char *)malloc(NameSize);
   }
 
-  /*
-    char c [] = {'f','i','r','s','t'};
-    writeName(c,0,5);
-    char d [] = {'t','e','s','t'};
-    writeName(d,12,4);
-    char fake [] = {'f','a','k','e'};
-    uint32_t z=8989;
-    uint32_t u=5656;
-    uint32_t none = 0;
-    writeRecord(&u,20,4);
-    writeRecord(&z,32,4);
-    for(unsigned int i=3;i<10;i++){
-        writeName(fake,12*i,4);
-        writeRecord(&none, 12*i+8,4);
-    }*/
+
+  //    char c [] = {'f','i','r','s','t'};
+  //    writeName(c,0,5);
+  //    char d [] = {'t','e','s','t'};
+  //    writeName(d,12,4);
+  //    char fake [] = {'f','a','k','e'};
+  //    uint32_t z=8989;
+  //    uint32_t u=5656;
+  //    uint32_t none = 0;
+  //    writeRecord(&u,20,4);
+  //    writeRecord(&z,32,4);
+  //    for(unsigned int i=3;i<10;i++){
+  //        writeName(fake,12*i,4);
+  //        writeRecord(&none, 12*i+8,4);
+  //    }
 
   for (int i = 0; i < recordCount; i++) {
     getName(recordHolders[i], recordAddress + 12 * i, NameSize);
@@ -232,21 +233,22 @@ static void handlePassDevice()
 // run button game
 static void handleButtonsGame() {
 
+  // prompt
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("Press Btns");
 
-  //  OrbitOledMoveTo(0, 50);
+  // time left
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
+  OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
 
+  // buttons to press
   OrbitOledMoveTo(0, 15);
   OrbitOledDrawString(game.objectives);
 
   // countdown
   if (game.timeElapsed++ == game.timeLimit) {
-    eliminatePlayer();
-    change
+    eliminatePlayer(); // may change ui page if no players left
   }
 
   // button pressed
@@ -255,14 +257,12 @@ static void handleButtonsGame() {
       game.objectives[game.objectiveIndex++] = ' ';
     } else {
       eliminatePlayer();
-      gameUiPage = PassDevice;
     }
   } else if (gameInputState.buttons[1].beingDepressed) {
     if (game.objectives[game.objectiveIndex] == '2') {
       game.objectives[game.objectiveIndex++] = ' ';
     } else {
       eliminatePlayer();
-      gameUiPage = PassDevice;
     }
   }
 
@@ -270,23 +270,19 @@ static void handleButtonsGame() {
   if (game.objectiveIndex == MaxActions) {
     currScore++;
     game.objectiveIndex = 0;
-    OrbitOledClearBuffer();
-    OrbitOledClear();
-    gameUiPage = PassDevice;
+    changeState();
   }
 }
 
-char pot [] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("Hit the line!");
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
+  OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
 
-   if (game.timeElapsed++ == game.timeLimit) {
+  if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
-    changeState();
   }
 
   int spot = (analogRead(Potentiometer) / 285 % 15);
@@ -306,39 +302,36 @@ static void handlePotentiometerGame() {
     game.objectiveIndex++;
   }
   if (game.objectiveIndex == 10) {
-    OrbitOledClearBuffer();
-    OrbitOledClear();
-    game.objectiveIndex = 0;
-    gameUiPage = PassDevice;
+    currScore++;
+    changeState();
   }
 }
 
 static void handleShakeGame() {
   OrbitOledMoveTo(0, 0);
-  OrbitOledDrawString("SHAKE ");
+  OrbitOledDrawString("Tilt ");
   switch (game.objectives[game.objectiveIndex]) {
-    case 0: OrbitOledDrawString("Up/Down"); break;
-    case 1: OrbitOledDrawString("Sideways"); break;
+    case 0: OrbitOledDrawString("Left"); break;
+    case 1: OrbitOledDrawString("Right"); break;
   }
 
   // draw coundown timer
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
+  OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
   // countdown
   if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
-    changeGame();
   }
 
   if (game.timeElapsed > game.cooldownStart + CooldownLength) {
-    if (game.objectives[game.objectiveIndex] == 0 && xShaking()) {
+    if (game.objectives[game.objectiveIndex] == 0 && leftTilt()) {
       game.objectives[game.objectiveIndex++] = ' ';
       game.cooldownStart = game.timeElapsed;
       OrbitOledClearBuffer();
       OrbitOledClear();
     }
-    if (game.objectives[game.objectiveIndex] == 1 && yShaking()) {
+    if (game.objectives[game.objectiveIndex] == 1 && rightTilt) {
       game.objectives[game.objectiveIndex++] = ' ';
       game.cooldownStart = game.timeElapsed;
       OrbitOledClearBuffer();
@@ -348,9 +341,8 @@ static void handleShakeGame() {
 
   // completed objective
   if (game.objectiveIndex == MaxShakes) {
-    changeGame();
+    changeState();
     currScore++;
-
   }
 }
 
@@ -397,13 +389,28 @@ static void setobjectives() {
 // remove current player from competition
 // should be followed by changeGame()
 static void eliminatePlayer() {
+  OrbitOledClearBuffer();
+  OrbitOledClear();
+
+  OrbitOledMoveTo(5, 5);
+  OrbitOledDrawString("Player ");
+  OrbitOledDrawChar(49 + game.playerIndex);
+  OrbitOledDrawString("elim'd ");
+  OrbitOledUpdate();
+  delay(3000);
+  OrbitOledClearBuffer();
+  OrbitOledClear();
+
   game.playersRemaining[game.playerIndex] = false;
   game.playersRemainingCount -= 1;
+  gameUiPage = PassDevice;
 
-if(game.playersRemainingCount==0){
-  gameUiPage = GameResult;
-}
-  
+  if (game.playersRemainingCount == 0) {
+    gameUiPage = GameResult;
+  }
+
+  game.timeElapsed = 0;
+
 }
 
 // Need some kind of way to track records maybe with an int
@@ -424,26 +431,28 @@ static void handleGameResult()
       records[i] = records[i - 1];
       writeRecord(&records[i - 1], recordAddress + 12 * i + 8, 4);
       char * tempName = (char *) malloc(8);
-      recordHolders[i] = recordHolders[i - 1];
+      //      recordHolders[i] = recordHolders[i - 1];
       getName(tempName, recordAddress + 12 * i - 12, 8);
       writeName(tempName, recordAddress + 12 * i, 8);
+      recordHolders[i] = tempName;
     }
     if (newRecordIndex != 10) {
       gameUiPage = NewRecord;
       records[newRecordIndex] = currScore;
       writeRecord(&currScore, recordAddress + 12 * newRecordIndex + 8, 4);
-      currScore=0;
+      currScore = 0;
     }
     else {
       OrbitOledClearBuffer();
       OrbitOledClear();
-      gameUiPage = PassDevice; // Welcome
+      gameUiPage = Welcome; // cangestate?
     }
   }
 }
 
 static void handleNewRecord() {
   if (first) {
+    spot=0;
     name = (char *) malloc(9);
     for (int i = 0; i < 8; i++)name[i] = ' ';
     name[8] = '\0';
@@ -469,7 +478,7 @@ static void handleNewRecord() {
     getName(recordHolders[newRecordIndex], recordAddress + newRecordIndex * 12, NameSize);
     OrbitOledClearBuffer();
     OrbitOledClear();
-    gameUiPage = PassDevice; //Welcome
+    gameUiPage = Welcome;
     first = true;
   }
 }
