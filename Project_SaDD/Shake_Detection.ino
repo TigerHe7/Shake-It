@@ -43,7 +43,7 @@ bool RandomShaking()
 
 int ShakeMag()
 {
-  return x + y + z;
+  return ShakeTotal;
 }
 
 void ShakeTick()
