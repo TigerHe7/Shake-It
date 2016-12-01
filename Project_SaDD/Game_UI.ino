@@ -25,6 +25,7 @@ const uint32_t ButtonCount = 2;
 const uint32_t ShakeDirectionCount = 2;
 const uint32_t PotentiometerPositionCount = 15;
 
+// inputs
 const uint32_t Switches[SwitchCount] = { PA_7, PA_6 };
 const uint32_t Buttons[ButtonCount] = { PD_2, PE_0 };
 const uint32_t Potentiometer = PE_3;
@@ -34,13 +35,6 @@ const size_t   MaxPlayers = 6;
 const uint32_t GamesCount = 3;
 const uint32_t MaxActions = 10;
 const uint32_t MaxShakes  = 5;
-const uint32_t TimeLimit = 10000;
-
-// time in milliseconds before registering another action
-// prevents single shake as being registered as more than one
-const uint32_t CooldownLength = 500;
-
-char pot [] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
 // Record Handling
 uint32_t currScore = 0;
@@ -56,6 +50,8 @@ uint32_t records [recordCount];
 const unsigned int recordAddress = 0;
 int newRecordIndex = 0;
 
+// holds characters for Potentiometer game
+char pot [] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
 // difficulty of game
 typedef enum Difficulty
@@ -66,7 +62,7 @@ typedef enum Difficulty
   DifficultyCount = 3,
 } difficulty;
 
-// button state
+// button info
 struct ButtonState
 {
   bool state;
@@ -82,9 +78,9 @@ struct GameState
   bool playersRemaining[MaxPlayers];
 
   int gameIndex;
-  int timeElapsed;
-  int timeLimit;                        // in game
-  int waitLimit;                        // between games
+  int timeElapsed;   // any state
+  int timeLimit;     // in game
+  int waitLimit;     // between games
   char objectives[MaxActions];
   int objectiveIndex;
   int cooldownStart;
@@ -92,7 +88,7 @@ struct GameState
   enum Difficulty gameDifficulty;
 } game;
 
-// input states
+// input info
 static struct InputState
 {
   bool                switches[2];
@@ -218,13 +214,15 @@ static void handlePageSelectDifficulty()
 // state during which players exchange device
 static void handlePassDevice()
 {
+
+
   OrbitOledMoveTo(5, 0);
   OrbitOledDrawString("Pass to P");
   OrbitOledDrawChar(49 + game.playerIndex);
 
   OrbitOledMoveTo(5, 15);
   OrbitOledDrawString("Time Left: ");
-  OrbitOledDrawChar((char) 48 + 5 - (game.timeElapsed++ / (game.waitLimit / 5)));
+  OrbitOledDrawChar( 48 + 5 - (game.timeElapsed++ * 5 / (game.waitLimit)));
 
   if (game.timeElapsed > game.waitLimit)
     changeState();
@@ -303,10 +301,8 @@ static void handlePotentiometerGame() {
     game.objectiveIndex++;
   }
   if (game.objectiveIndex == 10) {
-    OrbitOledClearBuffer();
-    OrbitOledClear();
-    currScore++;
     changeState();
+    currScore++;
   }
 }
 
@@ -317,12 +313,6 @@ static void handleShakeGame() {
   OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
 
   game.objectiveIndex = game.timeElapsed * MaxShakes / game.timeLimit;
-  
-  // prompt action
-  switch (game.objectives[game.objectiveIndex]) {
-    case 0: OrbitOledDrawString("SHAKE"); break;
-    case 1: OrbitOledDrawString("DON'T SHAKE"); break;
-  }
 
   // success if time runs out
   if (game.timeElapsed++ == game.timeLimit) {
@@ -330,41 +320,33 @@ static void handleShakeGame() {
     currScore++;
   }
 
-  
+  // prompt and handle shakes
+  // eliminate player if shake when no supposed to
+  OrbitOledMoveTo(5, 12);
+  switch (game.objectives[game.objectiveIndex]) {
+    case 0:
+      OrbitOledDrawString("   SHAKE   ");
+      if (Shaking()) {
+        game.objectives[game.objectiveIndex] = 2;
+      }
+      break;
 
-  //  if (game.timeElapsed > game.cooldownStart + CooldownLength) {
-  //    if (game.objectives[game.objectiveIndex] == 0 && leftTilt()) {
-  //      game.objectives[game.objectiveIndex++] = ' ';
-  //      game.cooldownStart = game.timeElapsed;
-  //      OrbitOledClearBuffer();
-  //      OrbitOledClear();
-  //    }
-  //    if (game.objectives[game.objectiveIndex] == 1 && rightTilt) {
-  //      game.objectives[game.objectiveIndex++] = ' ';
-  //      game.cooldownStart = game.timeElapsed;
-  //      OrbitOledClearBuffer();
-  //      OrbitOledClear();
-  //    }
-  //  }
+    case 1:
+      OrbitOledDrawString("DON'T SHAKE");
+      if (Shaking()) {
+          eliminatePlayer();
+      }
+      break;
 
-}
+    case 2:
+      OrbitOledDrawString("   NICE    ");
+      break;
+  }
 
-// set new game
-static void changeGame() {
-  // get random new player
-  game.playerIndex = (rand() % game.playersRemainingCount);
-  do {
-    if (++game.playerIndex == MaxPlayers) {
-      game.playerIndex = 0;
-    }
-  } while (game.playersRemaining[game.playerIndex] == false);
-
-  // get random new game
-  // assumes button game is first game
-  gameUiPage = (enum GamePages) (rand() % GamesCount + ButtonsGame);
-  setobjectives();
-  game.objectiveIndex = 0;
-  game.timeElapsed = 0;
+  // eliminate if missed a shake
+  if (game.objectiveIndex > 0 && game.objectives[game.objectiveIndex - 1] == 0) {
+    eliminatePlayer();
+  }
 }
 
 // create new random set of actions for next game
@@ -398,20 +380,22 @@ static void eliminatePlayer() {
   OrbitOledDrawChar(49 + game.playerIndex);
   OrbitOledDrawString(" elim'd ");
   OrbitOledUpdate();
+
   delay(3000);
   OrbitOledClearBuffer();
   OrbitOledClear();
 
   game.playersRemaining[game.playerIndex] = false;
   game.playersRemainingCount -= 1;
-  gameUiPage = PassDevice;
 
   if (game.playersRemainingCount == 0) {
     gameUiPage = GameResult;
+  } else {
+    newPlayer();
+    gameUiPage = PassDevice;
   }
 
   game.timeElapsed = 0;
-
 }
 
 // Need some kind of way to track records maybe with an int
@@ -543,6 +527,16 @@ static void uiInputTick()
   gameInputState.dial = analogRead(Potentiometer);
 }
 
+void newPlayer() {
+  // get random new player
+  game.playerIndex = (rand() % game.playersRemainingCount);
+  do {
+    if (++game.playerIndex == MaxPlayers) {
+      game.playerIndex = 0;
+    }
+  } while (game.playersRemaining[game.playerIndex] == false);
+}
+
 // determine which state to change to
 // clear screen
 // reset counter variable
@@ -563,22 +557,30 @@ void changeState()
 
     case SelectDifficulty:
       gameUiPage = PassDevice;
+      newPlayer();
       break;
 
     case PassDevice:
-      changeGame();
+      // prepares random new game
+      gameUiPage = (enum GamePages) (rand() % GamesCount + ButtonsGame);
+      setobjectives();
+      game.objectiveIndex = 0;
+      game.timeElapsed = 0;
       break;
 
     case ButtonsGame:
       gameUiPage = PassDevice;
+      newPlayer();
       break;
 
     case PotentiometerGame:
       gameUiPage = PassDevice;
+      newPlayer();
       break;
 
     case ShakeGame:
       gameUiPage = PassDevice;
+      newPlayer();
       break;
 
     case GameResult:
