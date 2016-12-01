@@ -237,12 +237,7 @@ static void handleButtonsGame() {
 
   //  OrbitOledMoveTo(0, 50);
   OrbitOledDrawChar('[');
-  if (game.timeLimit == 10000 && game.timeElapsed < 1000)
-    OrbitOledDrawString("10");
-  else {
-    OrbitOledDrawChar(' ');
-    OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
-  }
+  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
 
   OrbitOledMoveTo(0, 15);
@@ -286,18 +281,12 @@ static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("Hit the line!");
   OrbitOledDrawChar('[');
-  if (game.timeLimit == 10000 && game.timeElapsed < 1000)
-    OrbitOledDrawString("10");
-  else {
-    OrbitOledDrawChar(' ');
-    OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
-  }
+  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
 
    if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
-    game.timeElapsed=0;
-    gameUiPage = PassDevice;
+    changeState();
   }
 
   int spot = (analogRead(Potentiometer) / 285 % 15);
@@ -334,7 +323,7 @@ static void handleShakeGame() {
 
   // draw coundown timer
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
+  OrbitOledDrawChar(((game.timeLimit-1) / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
   // countdown
   if (game.timeElapsed++ == game.timeLimit) {
@@ -379,7 +368,7 @@ static void changeGame() {
   // assumes button game is first game
   gameUiPage = (enum GamePages) (rand() % GamesCount + ButtonsGame);
   setobjectives();
-  game.objectiveIndex == 0;
+  game.objectiveIndex = 0;
   game.timeElapsed = 0;
 }
 
@@ -412,7 +401,7 @@ static void eliminatePlayer() {
   game.playersRemainingCount -= 1;
 
 if(game.playersRemainingCount==0){
-  handleGameResult();
+  gameUiPage = GameResult;
 }
   
 }
