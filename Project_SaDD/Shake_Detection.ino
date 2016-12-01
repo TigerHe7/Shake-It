@@ -41,6 +41,11 @@ bool RandomShaking()
   return ShakeTotal >= ShakeTotalThreshold;
 }
 
+int ShakeMag()
+{
+  return x + y + z;
+}
+
 void ShakeTick()
 {
   size_t const DataLength = 6;
