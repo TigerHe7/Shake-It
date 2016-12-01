@@ -48,22 +48,11 @@ int spot = 0;
 bool first = true;
 int recordIndex = 0;
 bool display = true;
-<<<<<<< HEAD
-const uint32_t NameSize = 8;
-const uint32_t recordCount = 10;
-char * singleRecordHolders [recordCount];
-uint32_t singleRecords [recordCount];
-const unsigned int singleAddress = 0;
-char * multiRecordHolders [recordCount];
-uint32_t multiRecords [recordCount];
-const unsigned int multiAddress = 120;
-=======
 const uint32_t NameSize =8;
 const uint32_t recordCount =10;
 char * recordHolders [recordCount];
 uint32_t records [recordCount];
 const unsigned int recordAddress =0;
->>>>>>> origin/master
 int newRecordIndex = 0;
 
 
@@ -129,34 +118,6 @@ void GameUIInit()
     pinMode(Buttons[i], INPUT);
 
   // Initialize records array then receive past recordholders
-<<<<<<< HEAD
-  for (int i = 0; i < recordCount; i++) {
-    singleRecordHolders[i] = (char *)malloc(NameSize);
-    multiRecordHolders[i] = (char*)malloc(NameSize);
-  }
-
-  /*
-    char c [] = {'f','i','r','s','t'};
-    writeName(c,0,5);
-    char d [] = {'t','e','s','t'};
-    writeName(d,12,4);
-    char fake [] = {'f','a','k','e'};
-    uint32_t z=8989;
-    uint32_t u=5656;
-    uint32_t none = 0;
-    writeRecord(&u,20,4);
-    writeRecord(&z,32,4);
-    for(unsigned int i=3;i<10;i++){
-        writeName(fake,12*i,4);
-        writeRecord(&none, 12*i+8,4);
-    }*/
-
-  for (int i = 0; i < recordCount; i++) {
-    getName(singleRecordHolders[i], singleAddress + 12 * i, NameSize);
-    singleRecords[i] = getRecord(singleAddress + 12 * i + 8, sizeof(uint32_t));
-    getName(multiRecordHolders [i], multiAddress + 12 * i, NameSize);
-    multiRecords[i] = getRecord(multiAddress + 12 * i + 8, sizeof(uint32_t));
-=======
   for(int i=0;i<recordCount;i++){
     recordHolders[i]= (char *)malloc(NameSize);
   }
@@ -176,11 +137,10 @@ void GameUIInit()
       writeName(fake,12*i,4);
       writeRecord(&none, 12*i+8,4);
   }*/
-  
+
   for(int i=0;i<recordCount;i++){
     getName(recordHolders[i],recordAddress+12*i,NameSize);
     records[i]=getRecord(recordAddress+12*i+8, sizeof(uint32_t));
->>>>>>> origin/master
   }
 }
 
@@ -272,16 +232,12 @@ static void handleButtonsGame() {
 
   //  OrbitOledMoveTo(0, 50);
   OrbitOledDrawChar('[');
-<<<<<<< HEAD
-  OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
-=======
   if(game.timeLimit==10000 && game.timeElapsed < 1000)
     OrbitOledDrawString("10");
   else{
     OrbitOledDrawChar(' ');
     OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);
     }
->>>>>>> origin/master
   OrbitOledDrawChar(']');
 
   OrbitOledMoveTo(0, 15);
@@ -322,8 +278,6 @@ static void handleButtonsGame() {
 // *** to be implemented
 char pot [] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 static void handlePotentiometerGame() {
-<<<<<<< HEAD
-=======
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("Hit the line!");
   OrbitOledDrawChar('[');
@@ -332,9 +286,9 @@ static void handlePotentiometerGame() {
   else{OrbitOledDrawChar(' ');
     OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);}
   OrbitOledDrawChar(']');
-  
+
   int spot = (analogRead(Potentiometer) /285 % 15);
-  
+
   for(int i=0;i<15;i++)pot[i]=' ';
   pot[spot]= 'X';
   OrbitOledMoveTo(3,12);
@@ -355,7 +309,6 @@ static void handlePotentiometerGame() {
     game.objectiveIndex=0;
     gameUiPage = PassDevice;
   }
->>>>>>> origin/master
 }
 
 // *** to be implemented
@@ -468,37 +421,6 @@ static void eliminatePlayer() {
 // Need some kind of way to track records maybe with an int
 static void handleGameResult()
 {
-<<<<<<< HEAD
-  OrbitOledMoveTo(0, 0);
-  OrbitOledDrawString("Game Over!");
-  OrbitOledMoveTo(0, 12);
-  OrbitOledDrawString("Press any button");
-
-  if (gameInputState.buttons[0].beingDepressed || gameInputState.buttons[1].beingDepressed) {
-    newRecordIndex = 10;
-    while (currScore > singleRecords[newRecordIndex - 1] && newRecordIndex > 0)
-      newRecordIndex--;
-
-    // Update the list of records
-    for (int i = 9; i > newRecordIndex; i--) {
-      singleRecords[i] = singleRecords[i - 1];
-      writeRecord(&singleRecords[i - 1], singleAddress + 12 * i + 8, 4);
-      char * tempName = (char *) malloc(8);
-      singleRecordHolders[i] = singleRecordHolders[i - 1];
-      getName(tempName, singleAddress + 12 * i - 12, 8);
-      writeName(tempName, singleAddress + 12 * i, 8);
-    }
-    if (newRecordIndex != 10) {
-      gameUiPage = NewRecord;
-      singleRecords[newRecordIndex] = currScore;
-      writeRecord(&currScore, singleAddress + 12 * newRecordIndex + 8, 4);
-    }
-    else {
-      OrbitOledClearBuffer();
-      OrbitOledClear();
-      gameUiPage = PassDevice; // Welcome
-    }
-=======
     OrbitOledMoveTo(0,0);
     OrbitOledDrawString("Game Over!");
     OrbitOledMoveTo(0,12);
@@ -527,7 +449,6 @@ static void handleGameResult()
     OrbitOledClearBuffer();
     OrbitOledClear();
     gameUiPage = PassDevice; // Welcome
->>>>>>> origin/master
   }
 }
 
@@ -553,15 +474,9 @@ static void handleNewRecord() {
   else if (!gameInputState.switches[0] && spot > 0) {
     spot--;
   }
-<<<<<<< HEAD
-  else if (gameInputState.buttons[1].beingDepressed && spot != 0) {
-    writeName(name, singleAddress + newRecordIndex * 12, 8);
-    getName(singleRecordHolders[newRecordIndex], singleAddress + newRecordIndex * 12, NameSize);
-=======
-  else if (gameInputState.buttons[1].beingDepressed && spot!=0){   
+  else if (gameInputState.buttons[1].beingDepressed && spot!=0){
     writeName(name, recordAddress+newRecordIndex*12,8);
     getName(recordHolders[newRecordIndex], recordAddress +newRecordIndex*12,NameSize);
->>>>>>> origin/master
     OrbitOledClearBuffer();
     OrbitOledClear();
     gameUiPage = PassDevice; //Welcome
@@ -570,41 +485,22 @@ static void handleNewRecord() {
 }
 
 static void handleDisplayHighscores() {
-<<<<<<< HEAD
-  if (display) {
-    OrbitOledMoveTo(0, 0);
-    OrbitOledDrawString("Records.Back S2");
-
-    OrbitOledMoveTo(0, 11);
-    OrbitOledDrawString("Name       Score");
-
-    char * recordHolder = singleRecordHolders[recordIndex];
-    //recordHolder = (char *) realloc(recordHolder, 9);
-    //recordHolder[8]='\0';
-
-    OrbitOledMoveTo(0, 22);
-    OrbitOledDrawString(recordHolder);
-    OrbitOledDrawString("   ");
-    OrbitOledDrawString(intToChar(singleRecords[recordIndex]));
-    display = false;
-=======
   if(display){
   OrbitOledMoveTo(0,0);
   OrbitOledDrawString("Records.Back S2");
-  
+
   OrbitOledMoveTo(0,11);
   OrbitOledDrawString("Name       Score");
-  
+
   char * recordHolder = recordHolders[recordIndex];
   //recordHolder = (char *) realloc(recordHolder, 9);
   //recordHolder[8]='\0';
-  
+
   OrbitOledMoveTo(0,22);
   OrbitOledDrawString(recordHolder);
   OrbitOledDrawString("   ");
   OrbitOledDrawString(intToChar(records[recordIndex]));
   display=false;
->>>>>>> origin/master
   }
 
   if (gameInputState.switches[1]) {
