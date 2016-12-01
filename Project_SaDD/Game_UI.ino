@@ -11,7 +11,7 @@ static enum GamePages
   SelectDifficulty    = 2,
   PassDevice          = 3,
   ButtonsGame         = 4,
-  PotentiometerGame            = 5,
+  PotentiometerGame   = 5,
   ShakeGame           = 6,
   GameResult          = 7,
   DisplayHighscores   = 8,
@@ -36,6 +36,7 @@ const uint32_t MaxActions = 10;
 const uint32_t TimeLimit = 10000;
 
 // Record Handling
+uint32_t currScore =0;
 char * name;
 int spot=0;
 bool first=true;
@@ -145,7 +146,7 @@ void GameUIInit()
 // run welcome screen
 static void handlePageWelcome()
 {
-  OrbitOledMoveTo(5, 5);
+  OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("~Ding Dong~");
 
   OrbitOledMoveTo(0, 12);
@@ -230,7 +231,7 @@ static void handleButtonsGame() {
 
 //  OrbitOledMoveTo(0, 50);
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar(game.timeElapsed + 48);
+  OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);
   OrbitOledDrawChar(']');
 
   OrbitOledMoveTo(0, 15);
@@ -244,14 +245,14 @@ static void handleButtonsGame() {
 
   // button pressed
   if (gameInputState.buttons[0].beingDepressed) {
-    if (game.objectives[game.objectiveIndex] == 1) {
+    if (game.objectives[game.objectiveIndex] == '1') {
       game.objectives[game.objectiveIndex++] = ' ';
     } else {
       eliminatePlayer();
       gameUiPage = PassDevice;
     }
   } else if (gameInputState.buttons[1].beingDepressed) {
-    if (game.objectives[game.objectiveIndex] == 2) {
+    if (game.objectives[game.objectiveIndex] == '2') {
       game.objectives[game.objectiveIndex++] = ' ';
     } else {
       eliminatePlayer();
@@ -303,7 +304,8 @@ static void setobjectives() {
   switch (gameUiPage) {
     case ButtonsGame:
       for (int i = 0; i < MaxActions; i++)
-        game.objectives[i] = rand() % ButtonCount + 1;
+        game.objectives[i] = (char)49 +(rand() % ButtonCount);
+      game.objectiveIndex=0;
       break;
     case PotentiometerGame:
       for (int i = 0; i < MaxActions; i++)
@@ -324,7 +326,7 @@ static void eliminatePlayer() {
 }
 
 // Need some kind of way to track records maybe with an int
-static void handleGameResult(uint32_t score) 
+static void handleGameResult() 
 {
     OrbitOledMoveTo(0,0);
     OrbitOledDrawString("Game Over!");
@@ -333,7 +335,7 @@ static void handleGameResult(uint32_t score)
 
  if(gameInputState.buttons[0].beingDepressed || gameInputState.buttons[1].beingDepressed){
     newRecordIndex=10;
-  while(score> singleRecords[newRecordIndex-1] && newRecordIndex>0)
+  while(currScore> singleRecords[newRecordIndex-1] && newRecordIndex>0)
     newRecordIndex--;
 
 // Update the list of records
@@ -347,11 +349,13 @@ static void handleGameResult(uint32_t score)
   }
   if(newRecordIndex!=10){
     gameUiPage=NewRecord;
-    singleRecords[newRecordIndex]=score;
-    writeRecord(&score, singleAddress+12*newRecordIndex+8, 4);
+    singleRecords[newRecordIndex]=currScore;
+    writeRecord(&currScore, singleAddress+12*newRecordIndex+8, 4);
   }
   else{
-    gameUiPage = PassDevice;
+    OrbitOledClearBuffer();
+    OrbitOledClear();
+    gameUiPage = PassDevice; // Welcome
   }
  }
 }
@@ -383,7 +387,7 @@ static void handleNewRecord(){
     getName(singleRecordHolders[newRecordIndex], singleAddress +newRecordIndex*12,NameSize);
     OrbitOledClearBuffer();
     OrbitOledClear();
-    gameUiPage = PassDevice;
+    gameUiPage = PassDevice; //Welcome
     first=true;
   }
 }
@@ -497,7 +501,7 @@ void changeState()
     break;
 
   case GameResult:
-    handleGameResult(1);
+    handleGameResult();
     break;
 
   case DisplayHighscores:
@@ -544,7 +548,7 @@ void GameUITick()
     break;
 
   case GameResult:
-    handleGameResult(30);
+    handleGameResult();
     break;
 
   case NewRecord:
