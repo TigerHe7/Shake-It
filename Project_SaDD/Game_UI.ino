@@ -22,7 +22,7 @@ static enum GamePages
 // input counts
 const uint32_t SwitchCount = 2;
 const uint32_t ButtonCount = 2;
-const uint32_t ShakeDirectionCount = 3;
+const uint32_t ShakeDirectionCount = 2;
 const uint32_t PotentiometerPositionCount = 15;
 
 const uint32_t Switches[SwitchCount] = { PA_7, PA_6 };
@@ -329,7 +329,6 @@ static void handleShakeGame() {
   OrbitOledDrawChar('[');
   OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
-
   // countdown
   if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
@@ -337,24 +336,23 @@ static void handleShakeGame() {
   }
 
   if (game.timeElapsed > game.cooldownStart + CooldownLength) {
-    if (game.objectives[game.objectiveIndex] == 0) {
+    if (game.objectives[game.objectiveIndex] == 0 && xShaking()) {
       game.objectives[game.objectiveIndex++] = ' ';
-    } else {
-      eliminatePlayer();
+      game.cooldownStart = game.timeElapsed;
       OrbitOledClearBuffer();
       OrbitOledClear();
-      gameUiPage = PassDevice;
     }
-    if (game.objectives[game.objectiveIndex] == 1) {
+    if (game.objectives[game.objectiveIndex] == 1 && yShaking()) {
       game.objectives[game.objectiveIndex++] = ' ';
+      game.cooldownStart = game.timeElapsed;
+      OrbitOledClearBuffer();
+      OrbitOledClear();
     }
   }
 
   // completed objective
   if (game.objectiveIndex == MaxShakes) {
-    OrbitOledClearBuffer();
-    OrbitOledClear();
-    gameUiPage = PassDevice;
+    changeGame();
   }
 }
 
@@ -531,7 +529,8 @@ static void uiInputTick()
   gameInputState.dial = analogRead(Potentiometer);
 }
 
-// determine which state game is in
+// determine which state to change to
+// clear screen
 void changeState()
 {
   OrbitOledClearBuffer();

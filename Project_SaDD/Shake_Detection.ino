@@ -7,7 +7,7 @@ void WireWriteByte(int address, uint8_t value);
 static float const    SensorMaximumReading = 512.0;
 static float const    SensorMaximumAccel  = 9.81 * 4.0;
 static uint8_t const  SensorAccelerometer = 0x1D;
-static uint32_t const ShakeThresholdeshold = 150;
+static uint32_t const ShakeThresholdeshold = 120;
 
 static float          ShakeX              = 0.0;
 static float          ShakeY              = 0.0;
@@ -47,9 +47,9 @@ void ShakeTick()
   ShakeX = x*x;
   ShakeY = y*y - 90;
   
-  Serial.print(x*x);
-  Serial.print(", ");
-  Serial.print(y*y - 90);
-  Serial.print("\n");
+//  Serial.print(x*x);
+//  Serial.print(", ");
+//  Serial.print(y*y - 90);
+//  Serial.print("\n");
 
 }
