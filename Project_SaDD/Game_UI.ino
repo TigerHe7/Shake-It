@@ -176,8 +176,16 @@ static void handlePageSelectPlayers()
   game.playerCount = (((int)gameInputState.dial) / 200 % MaxPlayers) + 1;
   OrbitOledDrawChar((char)game.playerCount + 48);
 
-  if (gameInputState.buttons[0].beingDepressed)
+  if (gameInputState.buttons[0].beingDepressed) {
+    game.playersRemainingCount = game.playerCount;
+    for (int i = 0; i < MaxPlayers; i++) {
+      if (i < game.playerCount)
+        game.playersRemaining[i] = true;
+      else
+        game.playersRemaining[i] = false;
+    }
     changeState();
+  }
 }
 
 // choose number of players with knob
@@ -197,15 +205,12 @@ static void handlePageSelectDifficulty()
 
   if (gameInputState.buttons[0].beingDepressed)
   {
-    changeState();
-    game.playersRemainingCount = game.playerCount;
-    for (int i = 0; i < MaxPlayers; i++) {
-      if (i < game.playerCount) {
-        game.playersRemaining[i] = true;
-      } else {
-        game.playersRemaining[i] = false;
-      }
+    switch (game.gameDifficulty) {
+      case Easy:   game.waitLimit = 5000; game.timeLimit = 10000; break;
+      case Normal: game.waitLimit = 2500; game.timeLimit = 7000; break;
+      case Hard:   game.waitLimit = 1000; game.timeLimit = 5000; break;
     }
+    changeState();
   }
 }
 
@@ -275,7 +280,6 @@ static void handleButtonsGame() {
   }
 }
 
-// *** to be implemented
 char pot [] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
@@ -313,56 +317,36 @@ static void handlePotentiometerGame() {
   }
 }
 
-// *** to be implemented
 static void handleShakeGame() {
   OrbitOledMoveTo(0, 0);
-  OrbitOledDrawString("SHAKE : ");
+  OrbitOledDrawString("SHAKE ");
+  switch (game.objectives[game.objectiveIndex]) {
+    case 0: OrbitOledDrawString("Sideways"); break;
+    case 1: OrbitOledDrawString("Up/Down"); break;
+  }
+
+  // draw coundown timer
   OrbitOledDrawChar('[');
   OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
   OrbitOledDrawChar(']');
 
-  OrbitOledMoveTo(0, 12);
-  switch (game.objectives[game.objectiveIndex]) {
-    case 0: OrbitOledDrawString("Left"); break;
-    case 1: OrbitOledDrawString("In"); break;
-    case 2: OrbitOledDrawString("Up"); break;
-  }
-  game.timeElapsed++;
-  OrbitOledMoveTo(0, 24);
-  OrbitOledDrawString(game.objectives);
-  //  OrbitOledDrawString(ShakeMag);
-
-
   // countdown
-  //  if (game.timeElapsed++ == game.timeLimit) {
-  //    eliminatePlayer();
-  //    OrbitOledClearBuffer();
-  //    OrbitOledClear();
-  //    gameUiPage = PassDevice;
-  //  }
+  if (game.timeElapsed++ == game.timeLimit) {
+    eliminatePlayer();
+    changeGame();
+  }
 
   if (game.timeElapsed > game.cooldownStart + CooldownLength) {
-    if (XShake()) {
-      if (game.objectives[game.objectiveIndex] == 0) {
-        game.objectives[game.objectiveIndex++] = ' ';
-      } else {
-        eliminatePlayer();
-        gameUiPage = PassDevice;
-      }
-    } else if (YShake()) {
-      if (game.objectives[game.objectiveIndex] == 1) {
-        game.objectives[game.objectiveIndex++] = ' ';
-      } else {
-        eliminatePlayer();
-        gameUiPage = PassDevice;
-      }
-    } else if (ZShake()) {
-      if (game.objectives[game.objectiveIndex] == 2) {
-        game.objectives[game.objectiveIndex++] = ' ';
-      } else {
-        eliminatePlayer();
-        gameUiPage = PassDevice;
-      }
+    if (game.objectives[game.objectiveIndex] == 0) {
+      game.objectives[game.objectiveIndex++] = ' ';
+    } else {
+      eliminatePlayer();
+      OrbitOledClearBuffer();
+      OrbitOledClear();
+      gameUiPage = PassDevice;
+    }
+    if (game.objectives[game.objectiveIndex] == 1) {
+      game.objectives[game.objectiveIndex++] = ' ';
     }
   }
 
@@ -399,18 +383,19 @@ static void setobjectives() {
     case ButtonsGame:
       for (int i = 0; i < MaxActions; i++)
         game.objectives[i] = (char)49 + (rand() % ButtonCount);
-      game.objectiveIndex = 0;
       break;
     case PotentiometerGame:
       for (int i = 0; i < MaxActions; i++)
         game.objectives[i] = 8 * (rand() % PotentiometerPositionCount);
-      game.objectiveIndex = 0;
       break;
     case ShakeGame:
       for (int i = 0; i < MaxShakes; i++)
         game.objectives[i] = rand() % ShakeDirectionCount;
+      for (int i = MaxShakes; i < MaxActions; i++)
+        game.objectives[i] = 0;
       break;
   }
+  game.objectiveIndex = 0;
 }
 
 // remove current player from competition
@@ -530,6 +515,7 @@ static void handleDisplayHighscores() {
 // updates input readings
 static void uiInputTick()
 {
+  // detect switch positions
   for (int i = 0; i < SwitchCount; ++i )
     gameInputState.switches[i] = digitalRead(Switches[i]);
 
@@ -546,7 +532,6 @@ static void uiInputTick()
 }
 
 // determine which state game is in
-// update screen
 void changeState()
 {
   OrbitOledClearBuffer();
@@ -558,53 +543,37 @@ void changeState()
       break;
 
     case SelectPlayers:
-      game.playersRemainingCount = game.playerCount;
-      for (int i = 0; i < MaxPlayers; i++) {
-        if (i < game.playerCount)
-          game.playersRemaining[i] = true;
-        else
-          game.playersRemaining[i] = false;
-      }
       gameUiPage = SelectDifficulty;
       break;
 
     case SelectDifficulty:
-      switch (game.gameDifficulty) {
-        case Easy:   game.waitLimit = 5000; game.timeLimit = 10000; break;
-        case Normal: game.waitLimit = 2500; game.timeLimit = 7000; break;
-        case Hard:   game.waitLimit = 1000; game.timeLimit = 5000; break;
-      }
       gameUiPage = PassDevice;
       break;
 
     case PassDevice:
-      OrbitOledClearBuffer();
-      OrbitOledClear();
       changeGame();
       break;
 
     case ButtonsGame:
-      handleButtonsGame();
+      gameUiPage = PassDevice;
       break;
 
     case PotentiometerGame:
-      handlePotentiometerGame();
+      gameUiPage = PassDevice;
       break;
 
     case ShakeGame:
-      handleShakeGame();
+      gameUiPage = PassDevice;
       break;
 
     case GameResult:
-      handleGameResult();
+      gameUiPage = Welcome;
       break;
 
     case DisplayHighscores:
-      handleDisplayHighscores();
+      gameUiPage = Welcome;
       break;
   }
-  OrbitOledUpdate();
-  gameInputState.dial = analogRead(Potentiometer);
 }
 
 // determine which state game is in
