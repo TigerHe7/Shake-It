@@ -33,7 +33,7 @@ const uint32_t Potentiometer = PE_3;
 const size_t   MaxPlayers = 6;
 const uint32_t GamesCount = 3;
 const uint32_t MaxActions = 10;
-const uint32_t MaxShakes  = 3;
+const uint32_t MaxShakes  = 5;
 const uint32_t TimeLimit = 10000;
 
 // time in milliseconds before registering another action
@@ -123,22 +123,22 @@ void GameUIInit()
     recordHolders[i] = (char *)malloc(NameSize);
   }
 
+  records[0] = getRecord(recordAddress + 12 + 8, sizeof(uint32_t));
+  if (!(records[0] >= 0 && records[0] <= 9999)) {
+    char c [] = {'h', 'a', 'c', 'k', 'e', 'r'};
+    writeName(c, 0, 6);
 
-  //    char c [] = {'f','i','r','s','t'};
-  //    writeName(c,0,5);
-  //    char d [] = {'t','e','s','t'};
-  //    writeName(d,12,4);
-  //    char fake [] = {'f','a','k','e'};
-  //    uint32_t z=8989;
-  //    uint32_t u=5656;
-  //    uint32_t none = 0;
-  //    writeRecord(&u,20,4);
-  //    writeRecord(&z,32,4);
-  //    for(unsigned int i=3;i<10;i++){
-  //        writeName(fake,12*i,4);
-  //        writeRecord(&none, 12*i+8,4);
-  //    }
-
+    char fake [] = {'f', 'a', 'k', 'e'};
+    uint32_t z = 9999;
+    //uint32_t u=5656;
+    uint32_t none = 0;
+    //writeRecord(&u,20,4);
+    writeRecord(&z, 8, 4);
+    for (unsigned int i = 1; i < 10; i++) {
+      writeName(fake, 12 * i, 4);
+      writeRecord(&none, 12 * i + 8, 4);
+    }
+  }
   for (int i = 0; i < recordCount; i++) {
     getName(recordHolders[i], recordAddress + 12 * i, NameSize);
     records[i] = getRecord(recordAddress + 12 * i + 8, sizeof(uint32_t));
@@ -238,9 +238,9 @@ static void handleButtonsGame() {
   OrbitOledDrawString("Press Btns");
 
   // time left
-  OrbitOledDrawChar('[');
+  OrbitOledMoveTo(105, 0);
+  OrbitOledDrawString("t:");
   OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
-  OrbitOledDrawChar(']');
 
   // buttons to press
   OrbitOledMoveTo(0, 15);
@@ -277,9 +277,10 @@ static void handleButtonsGame() {
 static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("Hit the line!");
-  OrbitOledDrawChar('[');
+  // time left
+  OrbitOledMoveTo(105, 0);
+  OrbitOledDrawString("t:");
   OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
-  OrbitOledDrawChar(']');
 
   if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
@@ -302,48 +303,50 @@ static void handlePotentiometerGame() {
     game.objectiveIndex++;
   }
   if (game.objectiveIndex == 10) {
+    OrbitOledClearBuffer();
+    OrbitOledClear();
     currScore++;
     changeState();
   }
 }
 
 static void handleShakeGame() {
-  OrbitOledMoveTo(0, 0);
-  OrbitOledDrawString("Tilt ");
-  switch (game.objectives[game.objectiveIndex]) {
-    case 0: OrbitOledDrawString("Left"); break;
-    case 1: OrbitOledDrawString("Right"); break;
-  }
-
-  // draw coundown timer
-  OrbitOledDrawChar('[');
+  // time left
+  OrbitOledMoveTo(105, 0);
+  OrbitOledDrawString("t:");
   OrbitOledDrawChar(((game.timeLimit - 1) / 1000) - (game.timeElapsed) / 1000 + 48);
-  OrbitOledDrawChar(']');
-  // countdown
+
+  game.objectiveIndex = game.timeElapsed * MaxShakes / game.timeLimit;
+  
+  // prompt action
+  switch (game.objectives[game.objectiveIndex]) {
+    case 0: OrbitOledDrawString("SHAKE"); break;
+    case 1: OrbitOledDrawString("DON'T SHAKE"); break;
+  }
+
+  // success if time runs out
   if (game.timeElapsed++ == game.timeLimit) {
-    eliminatePlayer();
-  }
-
-  if (game.timeElapsed > game.cooldownStart + CooldownLength) {
-    if (game.objectives[game.objectiveIndex] == 0 && leftTilt()) {
-      game.objectives[game.objectiveIndex++] = ' ';
-      game.cooldownStart = game.timeElapsed;
-      OrbitOledClearBuffer();
-      OrbitOledClear();
-    }
-    if (game.objectives[game.objectiveIndex] == 1 && rightTilt) {
-      game.objectives[game.objectiveIndex++] = ' ';
-      game.cooldownStart = game.timeElapsed;
-      OrbitOledClearBuffer();
-      OrbitOledClear();
-    }
-  }
-
-  // completed objective
-  if (game.objectiveIndex == MaxShakes) {
     changeState();
     currScore++;
   }
+
+  
+
+  //  if (game.timeElapsed > game.cooldownStart + CooldownLength) {
+  //    if (game.objectives[game.objectiveIndex] == 0 && leftTilt()) {
+  //      game.objectives[game.objectiveIndex++] = ' ';
+  //      game.cooldownStart = game.timeElapsed;
+  //      OrbitOledClearBuffer();
+  //      OrbitOledClear();
+  //    }
+  //    if (game.objectives[game.objectiveIndex] == 1 && rightTilt) {
+  //      game.objectives[game.objectiveIndex++] = ' ';
+  //      game.cooldownStart = game.timeElapsed;
+  //      OrbitOledClearBuffer();
+  //      OrbitOledClear();
+  //    }
+  //  }
+
 }
 
 // set new game
@@ -379,8 +382,6 @@ static void setobjectives() {
     case ShakeGame:
       for (int i = 0; i < MaxShakes; i++)
         game.objectives[i] = rand() % ShakeDirectionCount;
-      for (int i = MaxShakes; i < MaxActions; i++)
-        game.objectives[i] = 0;
       break;
   }
   game.objectiveIndex = 0;
@@ -395,7 +396,7 @@ static void eliminatePlayer() {
   OrbitOledMoveTo(5, 5);
   OrbitOledDrawString("Player ");
   OrbitOledDrawChar(49 + game.playerIndex);
-  OrbitOledDrawString("elim'd ");
+  OrbitOledDrawString(" elim'd ");
   OrbitOledUpdate();
   delay(3000);
   OrbitOledClearBuffer();
@@ -452,7 +453,7 @@ static void handleGameResult()
 
 static void handleNewRecord() {
   if (first) {
-    spot=0;
+    spot = 0;
     name = (char *) malloc(9);
     for (int i = 0; i < 8; i++)name[i] = ' ';
     name[8] = '\0';

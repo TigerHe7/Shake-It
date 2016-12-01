@@ -82,12 +82,5 @@ char * intToChar(uint32_t t){
     t/=10;
     index--;
   }
-/*
-  // Bitwise operations to get 4 chars from one 32 bit int
-  i[4]='\0';
-  i[3] = 48 + t;//(char)(t & 0xffu);
-  i[2] = 48 +(t >> 8);//(unsigned char)((t >> 8) & 0xffu);
-  i[1] = 48 +(t >> 16);//(unsigned char)((t >> 16) & 0xffu);
-  i[0] = 48 +(t >> 24);//(char)((t >> 24) & 0xffu);*/
   return i;
 }
