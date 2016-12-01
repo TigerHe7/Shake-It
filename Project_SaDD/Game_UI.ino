@@ -359,15 +359,9 @@ static void handleShakeGame() {
 
   // completed objective
   if (game.objectiveIndex == MaxShakes) {
-<<<<<<< HEAD
     changeGame();
-=======
     currScore++;
-    game.timeElapsed=0;
-    OrbitOledClearBuffer();
-    OrbitOledClear();
-    gameUiPage = PassDevice;
->>>>>>> origin/master
+
   }
 }
 
@@ -552,10 +546,12 @@ static void uiInputTick()
 
 // determine which state to change to
 // clear screen
+// reset counter variable
 void changeState()
 {
   OrbitOledClearBuffer();
   OrbitOledClear();
+  game.timeElapsed = 0;
   switch (gameUiPage)
   {
     case Welcome:
