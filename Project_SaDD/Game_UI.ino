@@ -246,7 +246,7 @@ static void handleButtonsGame() {
   // countdown
   if (game.timeElapsed++ == game.timeLimit) {
     eliminatePlayer();
-    gameUiPage = PassDevice;
+    change
   }
 
   // button pressed
@@ -317,8 +317,8 @@ static void handleShakeGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("SHAKE ");
   switch (game.objectives[game.objectiveIndex]) {
-    case 0: OrbitOledDrawString("Sideways"); break;
-    case 1: OrbitOledDrawString("Up/Down"); break;
+    case 0: OrbitOledDrawString("Up/Down"); break;
+    case 1: OrbitOledDrawString("Sideways"); break;
   }
 
   // draw coundown timer
