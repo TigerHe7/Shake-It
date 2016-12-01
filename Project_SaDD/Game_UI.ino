@@ -17,13 +17,13 @@ static enum GamePages
   DisplayHighscores   = 8,
   NewRecord           = 9,
   NumberOfPages       = 10,
-} gameUiPage = PotentiometerGame;
+} gameUiPage = Welcome;
 
 // input counts
 const uint32_t SwitchCount = 2;
 const uint32_t ButtonCount = 2;
 const uint32_t ShakeDirectionCount = 3;
-const uint32_t PotentiometerPositionCount = 10;
+const uint32_t PotentiometerPositionCount = 15;
 
 const uint32_t Switches[SwitchCount] = { PA_7, PA_6 };
 const uint32_t Buttons[ButtonCount] = { PD_2, PE_0 };
@@ -225,7 +225,12 @@ static void handleButtonsGame() {
 
 //  OrbitOledMoveTo(0, 50);
   OrbitOledDrawChar('[');
-  OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);
+  if(game.timeLimit==10000 && game.timeElapsed < 1000)
+    OrbitOledDrawString("10");
+  else{
+    OrbitOledDrawChar(' ');
+    OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);
+    }
   OrbitOledDrawChar(']');
 
   OrbitOledMoveTo(0, 15);
@@ -256,6 +261,7 @@ static void handleButtonsGame() {
 
   // completed objective
   if (game.objectiveIndex == MaxActions) {
+    game.objectiveIndex=0;
     OrbitOledClearBuffer();
     OrbitOledClear();
     gameUiPage = PassDevice;
@@ -266,26 +272,34 @@ static void handleButtonsGame() {
 char pot [] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
-  OrbitOledDrawString("fit between: ");
+  OrbitOledDrawString("Hit the line!");
+  OrbitOledDrawChar('[');
+  if(game.timeLimit==10000 && game.timeElapsed < 1000)
+    OrbitOledDrawString("10");
+  else{OrbitOledDrawChar(' ');
+    OrbitOledDrawChar((game.timeLimit/1000)-(game.timeElapsed)/1000 + 48);}
+  OrbitOledDrawChar(']');
+  
   int spot = (analogRead(Potentiometer) /285 % 15);
-  /*OrbitOledMoveTo(0,12);
-  OrbitOledDrawChar(48+spot);*/
   
   for(int i=0;i<15;i++)pot[i]=' ';
   pot[spot]= 'X';
-  OrbitOledMoveTo(0,12);
+  OrbitOledMoveTo(3,12);
   OrbitOledDrawString(pot);
-  OrbitOledMoveTo(15,24);//game.objectives[game.objectiveIndex]
+  OrbitOledMoveTo(game.objectives[game.objectiveIndex],24);
   OrbitOledDrawChar('|');
-  OrbitOledMoveTo(20,24);
+  OrbitOledMoveTo(game.objectives[game.objectiveIndex]+6,24);
   OrbitOledDrawChar('|');
 
-  if(spot == (game.objectives[game.objectiveIndex]+2)/5){
-    game.objectiveIndex++;
-  }
-  if(game.objectiveIndex == 5) {
+  if(8*spot == game.objectives[game.objectiveIndex]){
     OrbitOledClearBuffer();
     OrbitOledClear();
+    game.objectiveIndex++;
+  }
+  if(game.objectiveIndex == 10) {
+    OrbitOledClearBuffer();
+    OrbitOledClear();
+    game.objectiveIndex=0;
     gameUiPage = PassDevice;
   }
 }
@@ -325,7 +339,7 @@ static void setobjectives() {
       break;
     case PotentiometerGame:
       for (int i = 0; i < MaxActions; i++)
-        game.objectives[i] = rand() % PotentiometerPositionCount;
+        game.objectives[i] = 8*(rand() % PotentiometerPositionCount);
       game.objectiveIndex=0;
       break;
     case ShakeGame:
