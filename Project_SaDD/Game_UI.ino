@@ -17,7 +17,7 @@ static enum GamePages
   DisplayHighscores   = 8,
   NewRecord           = 9,
   NumberOfPages       = 10,
-} gameUiPage = Welcome;
+} gameUiPage = PotentiometerGame;
 
 // input counts
 const uint32_t SwitchCount = 2;
@@ -44,12 +44,9 @@ int recordIndex=0;
 bool display = true;
 const uint32_t NameSize =8;
 const uint32_t recordCount =10;
-char * singleRecordHolders [recordCount];
-uint32_t singleRecords [recordCount];
-const unsigned int singleAddress =0;
-char * multiRecordHolders [recordCount];
-uint32_t multiRecords [recordCount];
-const unsigned int multiAddress =120;
+char * recordHolders [recordCount];
+uint32_t records [recordCount];
+const unsigned int recordAddress =0;
 int newRecordIndex = 0;
 
 
@@ -115,8 +112,7 @@ void GameUIInit()
 
   // Initialize records array then receive past recordholders
   for(int i=0;i<recordCount;i++){
-    singleRecordHolders[i]= (char *)malloc(NameSize);
-    multiRecordHolders[i]=(char*)malloc(NameSize);
+    recordHolders[i]= (char *)malloc(NameSize);
   }
 
 /*
@@ -136,10 +132,8 @@ void GameUIInit()
   }*/
   
   for(int i=0;i<recordCount;i++){
-    getName(singleRecordHolders[i],singleAddress+12*i,NameSize);
-    singleRecords[i]=getRecord(singleAddress+12*i+8, sizeof(uint32_t));
-    getName(multiRecordHolders [i], multiAddress+12*i, NameSize);
-    multiRecords[i]=getRecord(multiAddress+12*i+8, sizeof(uint32_t));
+    getName(recordHolders[i],recordAddress+12*i,NameSize);
+    records[i]=getRecord(recordAddress+12*i+8, sizeof(uint32_t));
   }
 }
 
@@ -269,9 +263,31 @@ static void handleButtonsGame() {
 }
 
 // *** to be implemented
+char pot [] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 static void handlePotentiometerGame() {
   OrbitOledMoveTo(0, 0);
   OrbitOledDrawString("fit between: ");
+  int spot = (analogRead(Potentiometer) /285 % 15);
+  /*OrbitOledMoveTo(0,12);
+  OrbitOledDrawChar(48+spot);*/
+  
+  for(int i=0;i<15;i++)pot[i]=' ';
+  pot[spot]= 'X';
+  OrbitOledMoveTo(0,12);
+  OrbitOledDrawString(pot);
+  OrbitOledMoveTo(15,24);//game.objectives[game.objectiveIndex]
+  OrbitOledDrawChar('|');
+  OrbitOledMoveTo(20,24);
+  OrbitOledDrawChar('|');
+
+  if(spot == (game.objectives[game.objectiveIndex]+2)/5){
+    game.objectiveIndex++;
+  }
+  if(game.objectiveIndex == 5) {
+    OrbitOledClearBuffer();
+    OrbitOledClear();
+    gameUiPage = PassDevice;
+  }
 }
 
 // *** to be implemented
@@ -310,6 +326,7 @@ static void setobjectives() {
     case PotentiometerGame:
       for (int i = 0; i < MaxActions; i++)
         game.objectives[i] = rand() % PotentiometerPositionCount;
+      game.objectiveIndex=0;
       break;
     case ShakeGame:
       for (int i = 0; i < MaxActions; i++)
@@ -335,22 +352,22 @@ static void handleGameResult()
 
  if(gameInputState.buttons[0].beingDepressed || gameInputState.buttons[1].beingDepressed){
     newRecordIndex=10;
-  while(currScore> singleRecords[newRecordIndex-1] && newRecordIndex>0)
+  while(currScore> records[newRecordIndex-1] && newRecordIndex>0)
     newRecordIndex--;
 
 // Update the list of records
   for(int i=9;i>newRecordIndex;i--){
-    singleRecords[i]=singleRecords[i-1];
-    writeRecord(&singleRecords[i-1],singleAddress+12*i+8,4);
+    records[i]=records[i-1];
+    writeRecord(&records[i-1],recordAddress+12*i+8,4);
     char * tempName = (char *) malloc(8);
-    singleRecordHolders[i]=singleRecordHolders[i-1];
-    getName(tempName, singleAddress+12*i-12, 8);
-    writeName(tempName, singleAddress+12*i,8);
+    recordHolders[i]=recordHolders[i-1];
+    getName(tempName, recordAddress+12*i-12, 8);
+    writeName(tempName, recordAddress+12*i,8);
   }
   if(newRecordIndex!=10){
     gameUiPage=NewRecord;
-    singleRecords[newRecordIndex]=currScore;
-    writeRecord(&currScore, singleAddress+12*newRecordIndex+8, 4);
+    records[newRecordIndex]=currScore;
+    writeRecord(&currScore, recordAddress+12*newRecordIndex+8, 4);
   }
   else{
     OrbitOledClearBuffer();
@@ -383,8 +400,8 @@ static void handleNewRecord(){
     spot--;
   }
   else if (gameInputState.buttons[1].beingDepressed && spot!=0){   
-    writeName(name, singleAddress+newRecordIndex*12,8);
-    getName(singleRecordHolders[newRecordIndex], singleAddress +newRecordIndex*12,NameSize);
+    writeName(name, recordAddress+newRecordIndex*12,8);
+    getName(recordHolders[newRecordIndex], recordAddress +newRecordIndex*12,NameSize);
     OrbitOledClearBuffer();
     OrbitOledClear();
     gameUiPage = PassDevice; //Welcome
@@ -400,14 +417,14 @@ static void handleDisplayHighscores() {
   OrbitOledMoveTo(0,11);
   OrbitOledDrawString("Name       Score");
   
-  char * recordHolder = singleRecordHolders[recordIndex];
+  char * recordHolder = recordHolders[recordIndex];
   //recordHolder = (char *) realloc(recordHolder, 9);
   //recordHolder[8]='\0';
   
   OrbitOledMoveTo(0,22);
   OrbitOledDrawString(recordHolder);
   OrbitOledDrawString("   ");
-  OrbitOledDrawString(intToChar(singleRecords[recordIndex]));
+  OrbitOledDrawString(intToChar(records[recordIndex]));
   display=false;
   }
 
