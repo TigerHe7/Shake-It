@@ -273,6 +273,7 @@ static void handleButtonsGame() {
 
   // completed objective
   if (game.objectiveIndex == MaxActions) {
+    currScore++;
     game.objectiveIndex = 0;
     OrbitOledClearBuffer();
     OrbitOledClear();
@@ -292,6 +293,12 @@ static void handlePotentiometerGame() {
     OrbitOledDrawChar((game.timeLimit / 1000) - (game.timeElapsed) / 1000 + 48);
   }
   OrbitOledDrawChar(']');
+
+   if (game.timeElapsed++ == game.timeLimit) {
+    eliminatePlayer();
+    game.timeElapsed=0;
+    gameUiPage = PassDevice;
+  }
 
   int spot = (analogRead(Potentiometer) / 285 % 15);
 
@@ -352,6 +359,8 @@ static void handleShakeGame() {
 
   // completed objective
   if (game.objectiveIndex == MaxShakes) {
+    currScore++;
+    game.timeElapsed=0;
     OrbitOledClearBuffer();
     OrbitOledClear();
     gameUiPage = PassDevice;
@@ -403,6 +412,11 @@ static void setobjectives() {
 static void eliminatePlayer() {
   game.playersRemaining[game.playerIndex] = false;
   game.playersRemainingCount -= 1;
+
+if(game.playersRemainingCount==0){
+  handleGameResult();
+}
+  
 }
 
 // Need some kind of way to track records maybe with an int
@@ -431,6 +445,7 @@ static void handleGameResult()
       gameUiPage = NewRecord;
       records[newRecordIndex] = currScore;
       writeRecord(&currScore, recordAddress + 12 * newRecordIndex + 8, 4);
+      currScore=0;
     }
     else {
       OrbitOledClearBuffer();
